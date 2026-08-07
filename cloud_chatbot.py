@@ -4,14 +4,12 @@ import requests
 import re
 import os
 
-# Page Setup
 st.set_page_config(
     page_title="Healthcare Assistant",
     page_icon="❤️",
     layout="wide"
 )
 
-# Emergency Banner
 st.markdown("""
 <div style="background-color:#ff1744; color:white; padding:1rem; border-radius:0.5rem; text-align:center; font-weight:bold; margin-bottom:1rem;">
     🚨 CALL EMERGENCY SERVICES (911/999) IF THIS IS A MEDICAL EMERGENCY
@@ -21,16 +19,13 @@ st.markdown("""
 st.title("❤️ Healthcare Assistant")
 st.caption("Powered by Hugging Face - 100% FREE")
 
-# Get API Key
 try:
     HF_API_KEY = st.secrets["HF_API_KEY"]
 except:
     HF_API_KEY = os.getenv("HF_API_KEY")
     if not HF_API_KEY:
         st.warning("⚠️ Please add HF_API_KEY to Streamlit Secrets")
-        st.info("Get a free token from: https://huggingface.co/settings/tokens")
 
-# Hugging Face API
 def ask_huggingface(question):
     if not HF_API_KEY:
         return "Please add your Hugging Face API key."
@@ -50,7 +45,7 @@ def ask_huggingface(question):
                 answer = result[0].get('generated_text', '')
                 if 'Answer:' in answer:
                     answer = answer.split('Answer:')[-1].strip()
-                return answer if len(answer) > 5 else "I'm not sure. Please try rephrasing."
+                return answer if len(answer) > 5 else "I'm not sure. Please try again."
             return "No response generated."
         elif response.status_code == 503:
             return "Model is loading. Please wait 10 seconds."
@@ -59,7 +54,6 @@ def ask_huggingface(question):
     except:
         return "Service unavailable. Please try later."
 
-# BMI Calculator
 def calculate_bmi(weight, height_cm):
     height_m = height_cm / 100
     bmi = round(weight / (height_m * height_m), 1)
@@ -75,7 +69,6 @@ def calculate_bmi(weight, height_cm):
     
     return f"📊 **BMI Result:** {bmi} - {category}\n\n{advice}\n\n⚠️ BMI is a screening tool only."
 
-# Process Query
 def process_query(prompt):
     if "bmi" in prompt.lower():
         weight_match = re.search(r'(\d+\.?\d*)\s*(?:kg|kgs?)', prompt, re.I)
@@ -86,7 +79,6 @@ def process_query(prompt):
             return "📊 Please provide weight and height.\n\nExample: *'Calculate BMI 70kg 175cm'*"
     return ask_huggingface(prompt)
 
-# Sidebar
 with st.sidebar:
     st.header("💡 Quick Actions")
     examples = [
@@ -103,7 +95,6 @@ with st.sidebar:
     st.divider()
     st.success("✅ Hugging Face Connected" if HF_API_KEY else "❌ No API Key")
 
-# Chat History
 if "messages" not in st.session_state:
     st.session_state.messages = [
         {"role": "assistant", "content": """
@@ -118,12 +109,10 @@ if "messages" not in st.session_state:
 """}
     ]
 
-# Display messages
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# Example query
 if "example_query" in st.session_state:
     prompt = st.session_state.example_query
     del st.session_state.example_query
@@ -136,7 +125,6 @@ if "example_query" in st.session_state:
             st.markdown(response)
             st.session_state.messages.append({"role": "assistant", "content": response})
 
-# Chat input
 if prompt := st.chat_input("Ask about your health..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
