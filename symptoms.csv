@@ -1,0 +1,21 @@
+symptom,condition,severity,recommendation,should_consult_doctor
+frequent_urination,diabetes,high,Monitor blood sugar,yes
+excessive_thirst,diabetes,high,Drink water and consult,yes
+fatigue,diabetes,medium,Rest and check glucose,yes
+blurred_vision,diabetes,high,See doctor immediately,yes
+weight_loss_unexplained,diabetes,high,Consult doctor,yes
+tingling_hands,diabetes,medium,May indicate neuropathy,yes
+headache,general,low,Rest and take paracetamol,no
+fever,illness,high,Consult doctor,yes
+cough,cold,medium,Use cough syrup,no
+sore_throat,cold,medium,Drink warm water,no
+chest_pain,heart,high,Call ambulance,yes
+shortness_breath,heart,high,Seek emergency care,yes
+dizziness,general,medium,Sit down and rest,no
+nausea,general,medium,Drink ginger tea,no
+joint_pain,arthritis,medium,Rest and apply ice,no
+back_pain,general,medium,Exercise and rest,no
+muscle_cramp,general,low,Stretch and massage,no
+insomnia,stress,medium,Practice relaxation,no
+anxiety,stress,medium,Practice meditation,no
+high_blood_pressure,hypertension,high,Reduce salt,yes
