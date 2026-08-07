@@ -25,6 +25,7 @@ except:
     HF_API_KEY = os.getenv("HF_API_KEY")
     if not HF_API_KEY:
         st.warning("⚠️ Please add HF_API_KEY to Streamlit Secrets")
+        st.info("Get a free token from: https://huggingface.co/settings/tokens")
 
 def ask_huggingface(question):
     if not HF_API_KEY:
