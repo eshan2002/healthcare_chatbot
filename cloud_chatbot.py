@@ -1,17 +1,11 @@
-﻿# cloud_chatbot.py - FREE Hugging Face Chatbot for Streamlit Cloud
+# cloud_chatbot.py
 import streamlit as st
 import requests
-import os
 import re
+import os
 
-# Page Configuration
-st.set_page_config(
-    page_title="Healthcare Assistant",
-    page_icon="❤️",
-    layout="wide"
-)
+st.set_page_config(page_title="Healthcare Assistant", page_icon="❤️", layout="wide")
 
-# Emergency Banner
 st.markdown("""
 <div style="background-color:#ff1744; color:white; padding:1rem; border-radius:0.5rem; text-align:center; font-weight:bold; margin-bottom:1rem;">
     🚨 CALL EMERGENCY SERVICES (911/999) IF THIS IS A MEDICAL EMERGENCY
@@ -19,176 +13,100 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("❤️ Healthcare Assistant")
-st.caption("Powered by Hugging Face - 100% Free")
+st.caption("Powered by Hugging Face - 100% FREE")
 
-# Get API Key from Streamlit Secrets
 try:
     HF_API_KEY = st.secrets["HF_API_KEY"]
 except:
     HF_API_KEY = os.getenv("HF_API_KEY")
     if not HF_API_KEY:
-        st.warning("⚠️ Please add HF_API_KEY to Streamlit Secrets")
-        st.info("""
-        1. Get a free token from: https://huggingface.co/settings/tokens
-        2. In your Streamlit app, go to Settings → Secrets
-        3. Add: HF_API_KEY = "your-token-here"
-        4. Redeploy
-        """)
+        st.warning("⚠️ Add HF_API_KEY to Streamlit Secrets")
+        st.info("Get one free at https://huggingface.co/settings/tokens")
 
-# Hugging Face API Function
-def query_huggingface(prompt):
+def ask_ai(question):
     if not HF_API_KEY:
-        return "Please add your Hugging Face API key to use this feature."
+        return "Please add your Hugging Face API key."
     
-    API_URL = "https://api-inference.huggingface.co/models/gpt2"
+    url = "https://api-inference.huggingface.co/models/gpt2"
     headers = {"Authorization": f"Bearer {HF_API_KEY}"}
-    payload = {
-        "inputs": f"Question: {prompt}\nAnswer:",
-        "parameters": {
-            "max_length": 150,
-            "temperature": 0.7,
-            "do_sample": True
-        }
-    }
+    data = {"inputs": f"Question: {question}\nAnswer:", "parameters": {"max_length": 150}}
     
     try:
-        response = requests.post(API_URL, headers=headers, json=payload, timeout=30)
-        
-        if response.status_code == 200:
-            result = response.json()
-            if isinstance(result, list) and len(result) > 0:
-                answer = result[0].get('generated_text', '')
-                if 'Answer:' in answer:
-                    answer = answer.split('Answer:')[-1].strip()
-                if prompt in answer:
-                    answer = answer.replace(prompt, '').strip()
-                return answer if len(answer) > 5 else "I'm not sure. Please try rephrasing."
-            return "No response generated. Please try again."
-        elif response.status_code == 503:
-            return "The model is loading. Please wait 10 seconds and try again."
-        else:
-            return f"Error: {response.status_code}. Please try again later."
-            
-    except requests.exceptions.Timeout:
-        return "Request timed out. The model may be busy. Please try again."
-    except Exception as e:
-        return f"Error: {str(e)}"
+        r = requests.post(url, headers=headers, json=data, timeout=30)
+        if r.status_code == 200:
+            result = r.json()
+            if result and isinstance(result, list):
+                text = result[0].get('generated_text', '')
+                if 'Answer:' in text:
+                    text = text.split('Answer:')[-1].strip()
+                return text if len(text) > 3 else "I'm not sure. Please try again."
+        return "Error. Please try again."
+    except:
+        return "Service unavailable. Please try later."
 
-# BMI Calculator
-def calculate_bmi(weight, height_cm):
-    height_m = height_cm / 100
-    bmi = round(weight / (height_m * height_m), 1)
-    
+def calc_bmi(w, h_cm):
+    h_m = h_cm / 100
+    bmi = round(w / (h_m * h_m), 1)
     if bmi < 18.5:
-        category = "Underweight"
-        advice = "Consider consulting a nutritionist for healthy weight gain."
+        cat, adv = "Underweight", "Consider consulting a nutritionist."
     elif bmi < 25:
-        category = "Normal weight"
-        advice = "Great! You're in a healthy weight range. Keep it up!"
+        cat, adv = "Normal weight", "Great! Healthy range."
     elif bmi < 30:
-        category = "Overweight"
-        advice = "Consider a balanced diet and regular exercise."
+        cat, adv = "Overweight", "Consider balanced diet and exercise."
     else:
-        category = "Obese"
-        advice = "Please consult a healthcare professional for personalized advice."
-    
-    return f"""
-📊 **BMI Result:** {bmi} - {category}
+        cat, adv = "Obese", "Please consult a doctor."
+    return f"📊 BMI: {bmi} - {cat}\n\n{adv}\n\n⚠️ BMI is a screening tool only."
 
-{advice}
-
-⚠️ BMI is a screening tool, not a diagnostic test.
-"""
-
-# Process Query
-def process_query(prompt):
-    if "bmi" in prompt.lower() or "calculate my bmi" in prompt.lower():
-        weight_match = re.search(r'(\d+\.?\d*)\s*(?:kg|kgs?)', prompt, re.I)
-        height_match = re.search(r'(\d+\.?\d*)\s*(?:cm|centimeters?)', prompt, re.I)
-        
-        if weight_match and height_match:
-            weight = float(weight_match.group(1))
-            height = float(height_match.group(1))
-            return calculate_bmi(weight, height)
-        else:
-            return "📊 Please provide weight and height.\n\nExample: *'Calculate BMI 70kg 175cm'*"
-    
-    return query_huggingface(prompt)
-
-# Sidebar
 with st.sidebar:
-    st.header("💡 Quick Actions")
-    examples = [
-        "Calculate my BMI with weight 70kg height 175cm",
-        "What's the nutrition in chicken breast?",
-        "Give me exercises for weight loss",
-        "I have a headache",
-        "What's my diabetes risk?"
-    ]
-    for ex in examples:
-        if st.button(ex, use_container_width=True):
-            st.session_state.example_query = ex
+    st.header("Quick Examples")
+    for q in ["Calculate my BMI with weight 70kg height 175cm", "What's the nutrition in chicken breast?", "I have a headache"]:
+        if st.button(q, use_container_width=True):
+            st.session_state.example = q
             st.rerun()
-    
     st.divider()
-    
-    if HF_API_KEY:
-        st.success("✅ Hugging Face Connected")
-    else:
-        st.error("❌ No API Key Found")
-        st.info("Add HF_API_KEY to Secrets")
-    
-    st.divider()
-    st.caption("⚡ Free tier may have rate limits")
+    st.success("✅ Hugging Face API Ready" if HF_API_KEY else "❌ No API Key")
 
-# Chat History
 if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {"role": "assistant", "content": """
-👋 Hello! I'm your Healthcare Assistant, available 24/7!
+    st.session_state.messages = [{"role": "assistant", "content": "👋 Hello! Ask me anything about health. ⚠️ I'm an AI, not a doctor."}]
 
-**I can help with:**
-- 📊 BMI calculation
-- 🍎 Nutrition advice
-- 🏋️ Exercise recommendations
-- 🩺 Symptom analysis
-- 📈 Diabetes risk assessment
+for m in st.session_state.messages:
+    with st.chat_message(m["role"]):
+        st.markdown(m["content"])
 
-⚠️ I'm an AI, not a doctor. Always consult healthcare professionals.
-
-**Try asking:**
-- "Calculate my BMI with weight 70kg height 175cm"
-- "What's the nutrition in chicken breast?"
-- "I have a headache"
-"""}
-    ]
-
-# Chat Interface
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-
-if "example_query" in st.session_state:
-    prompt = st.session_state.example_query
-    del st.session_state.example_query
-    
-    st.session_state.messages.append({"role": "user", "content": prompt})
+if "example" in st.session_state:
+    p = st.session_state.example
+    del st.session_state.example
+    st.session_state.messages.append({"role": "user", "content": p})
     with st.chat_message("user"):
-        st.markdown(prompt)
-    
+        st.markdown(p)
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
-            response = process_query(prompt)
-            st.markdown(response)
-            st.session_state.messages.append({"role": "assistant", "content": response})
+            if "bmi" in p.lower():
+                wm = re.search(r'(\d+)\s*kg', p, re.I)
+                hm = re.search(r'(\d+)\s*cm', p, re.I)
+                if wm and hm:
+                    r = calc_bmi(float(wm.group(1)), float(hm.group(1)))
+                else:
+                    r = "Please provide weight in kg and height in cm."
+            else:
+                r = ask_ai(p)
+            st.markdown(r)
+            st.session_state.messages.append({"role": "assistant", "content": r})
 
-if prompt := st.chat_input("Ask about your health..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
+if p := st.chat_input("Ask about your health..."):
+    st.session_state.messages.append({"role": "user", "content": p})
     with st.chat_message("user"):
-        st.markdown(prompt)
-    
+        st.markdown(p)
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
-            response = process_query(prompt)
-            st.markdown(response)
-            st.session_state.messages.append({"role": "assistant", "content": response})
+            if "bmi" in p.lower():
+                wm = re.search(r'(\d+)\s*kg', p, re.I)
+                hm = re.search(r'(\d+)\s*cm', p, re.I)
+                if wm and hm:
+                    r = calc_bmi(float(wm.group(1)), float(hm.group(1)))
+                else:
+                    r = "Please provide weight in kg and height in cm."
+            else:
+                r = ask_ai(p)
+            st.markdown(r)
+            st.session_state.messages.append({"role": "assistant", "content": r})
